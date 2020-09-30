@@ -1,9 +1,7 @@
 #### TEST: Solve adcevtion diffusion equation and compare to analytical solution
-import onedimensional_solvers as solve
+import pyGlacier as solve
 import matplotlib.pyplot as plt
 import numpy as np
-
-
 
 
 #phi(x) = c1*D/V*np.exp(-V*x/D) + c2

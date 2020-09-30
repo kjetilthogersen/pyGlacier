@@ -1,5 +1,5 @@
 #### TEST: Solve diffusion equation and plot
-import onedimensional_solvers as solve
+import pyGlacier as solve
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -26,4 +26,4 @@ for i in range(1,1000):
 	line1.set_ydata(phi)
 	#fig.canvas.draw()
 	plt.pause(0.0001)
-	print i
+	print(i)

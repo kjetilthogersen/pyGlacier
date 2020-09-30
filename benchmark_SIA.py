@@ -1,5 +1,5 @@
 #### TEST: Solves SIA for an ice sheet with no sliding, and compares it to the 1D solution by Buler et al ("Exact time-depentent similarity solutions for isothermal shallow ice sheets")
-import onedimensional_solvers as solve
+import pyGlacier as pg
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -25,6 +25,34 @@ t = np.linspace(1,100,100000)
 H_analytical = halfar(t[0],x,gamma)
 H_numerical = H_analytical
 
+
+def SMB(height):
+	return 0*height
+
+
+variables = {
+'solver': 
+	{'ID': 'SIA',
+	'variables':{
+		'rho': 900.0,
+		'g': 9.8,
+		'n': 3.0,
+		't': 0.0,
+		'A': 1.0e-24,
+		'H': H_numerical,
+		'b': b,
+		'dx': dx,
+		'dt': t[1]-t[0]} },
+'DrainageSystem': 
+	{'ID': 'None'},
+'FrictionLaw': 
+	{'ID': 'None'},
+'Output': 
+	{'foldername': 'benchmark_SIA',
+	'output_interval': 100,
+	'file_format': 'json'} }
+
+
 # Loop and plot
 plt.ion()
 fig = plt.figure()
@@ -38,14 +66,15 @@ plt.ylabel('y [m]')
 ax.legend()
 plt.show()
 
+# Create glacier object
+glacier = pg.Flowline(variables = variables)
 
-glacier = solve.Flowline(A = A, H = H_numerical, b = b, dx = dx, dt = t[1]-t[0], rho = rho, g = g, n = n, solver = 'SIA', SMB = 0.0)
-
+# Time loop
 for i in range(1,np.size(t)):
 	glacier.step()
 	H_analytical = halfar(t[i],x,gamma) # Analytical solution
 	if(i%100==0): # Plot
-		print t[i]
+		print(t[i])
 		line1.set_ydata(H_analytical)
 		line2.set_ydata(glacier.H)
 		fig.canvas.draw()
