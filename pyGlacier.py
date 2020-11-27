@@ -15,7 +15,10 @@ import sys
 import os
 import copy
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+import matplotlib.font_manager
 import math
+from scipy.signal import find_peaks
 
 secondyears = 60*60*24*365.25
 
@@ -228,9 +231,9 @@ class Flowline:
 				rel_error = np.max([rel_error_U, rel_error_S])
 
 				if rel_error>error_tolerance:
-					self.dt = self.dt/1.5
+					self.dt = self.dt/2.0
 				elif rel_error<error_tolerance/10:
-					self.dt = self.dt*1.5
+					self.dt = self.dt*1.1
 				if self.dt>dt_max:
 					self.dt = dt_max
 				elif self.dt<dt_min:
@@ -384,8 +387,8 @@ class CavitySheet():
 		D = effective_conductivity*self.water_density*model.g/self.ev
 		D_staggered = (D[1:]+D[0:-1])/2.0
 		
-		#beta = self.water_density*model.g/self.ev*(self.h0*model.FrictionLaw.state_parameter_derivative + self.source_term(model) + melt_rate + source_term_from_conduit)
-		beta = self.water_density*model.g/self.ev*(1/model.FrictionLaw.state_parameter*self.h0*model.FrictionLaw.state_parameter_derivative + self.source_term(model) + melt_rate + source_term_from_conduit) # with the logarithmic term
+		beta = self.water_density*model.g/self.ev*(self.h0*model.FrictionLaw.state_parameter_derivative + self.source_term(model) + melt_rate + source_term_from_conduit)
+		#beta = self.water_density*model.g/self.ev*(1/(model.FrictionLaw.state_parameter+1.0e-9)*self.h0*model.FrictionLaw.state_parameter_derivative + self.source_term(model) + melt_rate + source_term_from_conduit) # with the logarithmic term
 		self.hydraulic_potential = step_diffusion_1d(dt = model.dt, dx = model.dx, phi = self.hydraulic_potential, sourceTerm = beta, D = D_staggered, left_boundary_condition = 'vonNeuman',left_boundary_condition_value = 0.0, right_boundary_condition = 'vonNeuman', right_boundary_condition_value = 0.0)
 
 		self.update_water_pressure()
@@ -399,13 +402,15 @@ class CavitySheet():
 	def getHydraulicConductivity(self):
 		model = self.model
 		perc_fun = self.percolation_function()
-		#effective_conductivity = self.background_conductivity*np.ones(np.size(model.b)) + self.sheet_conductivity*self.h0*(1.0-model.FrictionLaw.state_parameter)**3.0*perc_fun
-		effective_conductivity = self.background_conductivity*np.ones(np.size(model.b)) - self.sheet_conductivity*(self.h0*np.log(model.FrictionLaw.state_parameter))**3.0*perc_fun #log-term for opening
+		effective_conductivity = self.background_conductivity*np.ones(np.size(model.b)) + self.sheet_conductivity*(1.0-model.FrictionLaw.state_parameter)**3.0*perc_fun
+		#effective_conductivity = self.background_conductivity*np.ones(np.size(model.b)) + self.sheet_conductivity*(self.h0*(1.0-model.FrictionLaw.state_parameter))**3.0*perc_fun
+		#effective_conductivity = self.background_conductivity*np.ones(np.size(model.b)) - self.sheet_conductivity*(self.h0*np.log(model.FrictionLaw.state_parameter))**3.0*perc_fun #log-term for opening
 		return effective_conductivity
 
 	def percolation_function(self):
 		model = self.model
-		return .5*(np.tanh((self.percolation_threshold-model.FrictionLaw.state_parameter)*5.0)+1.0)
+		return .5*(np.tanh((self.percolation_threshold-model.FrictionLaw.state_parameter)*50.0)+1.0)
+		#return .5*(np.tanh((self.percolation_threshold-model.FrictionLaw.state_parameter)*5.0)+1.0)
 
 	def getDictionary(self, init = False):
 		model = self.model
@@ -547,7 +552,8 @@ class ConduitSystem():
 
 		opening_term_constant = np.abs( 1.0/(model.rho*self.latent_heat) * np.abs(self.conduit_spacing*( (sheet_discharge[1:] + sheet_discharge[0:-1])/2.0 )) * hydraulic_potential_gradient_sheet )
 		opening_term_prefactor = np.abs( 1.0/(model.rho*self.latent_heat) * (np.abs(( self.channel_constant*(S_staggered)**(self.alpha-1)*np.abs(hydraulic_potential_gradient_conduit)**(self.beta-1) ) * hydraulic_potential_gradient_conduit)) )
-		closure_term_prefactor = np.sign((normal_stress[1:]+normal_stress[0:-1])/2)*2*(np.abs((normal_stress[1:]+normal_stress[0:-1])/2)/(model.n*self.closure_coefficient))**model.n
+		
+		closure_term_prefactor = np.sign((normal_stress[1:]+normal_stress[0:-1])/2)*2*(np.abs((normal_stress[1:]+normal_stress[0:-1])/2)/(model.n*self.closure_coefficient))**model.n# + (model.u_SSA[1:]+model.u_SSA[0:-1])/2.0 #@@@
 
 		#Semi-implicit time-integration:
 		S_staggered_previous_step = S_staggered
@@ -713,6 +719,7 @@ class PostProcess():
 		self.H = np.array([])
 		self.t = np.array([])
 		self.U = np.array([])
+		self.U_SSA = np.array([])
 		self.state_parameter = np.array([])
 		self.hydraulic_potential = np.array([])
 		self.file_format = file_format
@@ -721,7 +728,8 @@ class PostProcess():
 		self.loadedIndices = []
 		self.resolution = resolution
 
-		plt.rcParams.update({"text.usetex": True, "font.family": "sans-serif", "font.sans-serif": ["Helvetica"]}) #Which font to choose to make this ready for pip install
+		#plt.rcParams.update({"text.usetex": True, "font.family": "sans-serif", "font.sans-serif": ["Helvetica"]}) #Which font to choose to make this ready for pip install
+		#plt.rcParams.update({"text.usetex": True}) #Which font to choose to make this ready for pip install
 
 		self.loadData()
 
@@ -755,11 +763,22 @@ class PostProcess():
 					init = json.load(f)
 			elif self.file_format=='mat':
 				init = sio.loadmat(self.foldername + '/src/INIT.mat')
-			self.x = init['x']
-			self.b = init['b']
+			self.x = init['x'][0]
+			self.b = init['b'][0]
 			self.rho = init['rho']
 			self.water_density = init['water_density']
 			self.g = init['g']
+			self.sheet_conductivity = init['sheet_conductivity']
+			self.percolation_threshold = init['percolation_threshold']
+			self.width = init['width']
+			self.A = init['A']
+			self.As = init['As']
+			self.m = init['m']
+			self.n = init['n']
+			self.C = init['C'][0]
+			self.channel_constant = init['channel_constant'][0]
+			self.background_conductivity = init['background_conductivity'][0]
+			self.sheet_conductivity = init['sheet_conductivity'][0]
 
 			# Load time-series
 			allIndices = self.getFileIndices()
@@ -767,19 +786,25 @@ class PostProcess():
 			loadedFiles = [str(s)+'.'+self.file_format for s in allIndices]
 
 			self.U = np.zeros([np.size(allIndices),np.size(self.x)])
+			self.U_SSA = np.zeros([np.size(allIndices),np.size(self.x)])
 			self.H = np.zeros([np.size(allIndices),np.size(self.x)])
 			self.S = np.zeros([np.size(allIndices),np.size(self.x)])
 			self.state_parameter = np.zeros([np.size(allIndices),np.size(self.x)])
 			self.hydraulic_potential = np.zeros([np.size(allIndices),np.size(self.x)])
+			self.ExchangeTerm = np.zeros([np.size(allIndices),np.size(self.x)])
+
 			i = 0
 			for file in loadedFiles:
 				data = self.loadDataFile(file)
 				self.U[i,0:] = np.array(data['U']*secondyears)
+				self.U_SSA[i,0:] = np.array(data['U_SSA']*secondyears)
 				self.H[i,0:] = np.array(data['H'])
 				self.S[i,0:] = np.array(data['S'])
 				self.state_parameter[i,0:] = np.array(data['state_parameter'])
 				self.hydraulic_potential[i,0:] = np.array(data['hydraulic_potential']/1e6) #Given in MPa
+				self.ExchangeTerm[i,0:] = np.array(data['ExchangeTerm']*secondyears) # given in m/yr
 				self.t = np.append(self.t, data.get('t')/secondyears) #Given in years
+				
 				i+=1
 
 			self.loadedIndices = allIndices
@@ -799,28 +824,58 @@ class PostProcess():
 			for file in newFiles: # Append new data to the arrays
 				data = self.loadDataFile(file)
 				self.U = np.append(self.U, data['U']*secondyears, axis=0)
+				self.U_SSA = np.append(self.U_SSA, data['U_SSA']*secondyears, axis=0)
 				self.H = np.append(self.H, data['H'], axis=0)
 				self.S = np.append(self.S, data['S'], axis=0)
 				self.state_parameter = np.append(self.state_parameter, data['state_parameter'], axis=0)
 				self.hydraulic_potential = np.append(self.hydraulic_potential, data['hydraulic_potential']/1e6, axis=0)
+				self.ExchangeTerm = np.append(self.ExchangeTerm, data['ExchangeTerm']*secondyears, axis=0)
 				self.t = np.append(self.t, data.get('t')/secondyears) #Given in years
 			
 			self.loadedIndices = newIndices + self.loadedIndices
 			print('Loaded ' + str(np.size(newIndices)) + ' steps in time interval [' + str(t0) + ',' + str(self.t[-1]) + '] years')
 
+	def findAverageMaxima(self,variable,height = 100.0):
+		var = self.getAverage(variable)
+		t_peaks,_ = find_peaks(var,height=height)
+		return self.t[t_peaks],var[t_peaks]
 
-	def plotAverage(self, variable, printToFile = False):
+	def getAverage(self,variable):
+		var = self.getVariable(variable)
+		var[np.where(self.H<=0)]=float('NaN')
+		return np.nanmean(var,1)
+
+	def plotAverage(self, variable, printToFile = False, logscale = False):
 		# Plots average of given variable where the ice thickness is nonzero
 		
-		plt.figure()
+		#plt.figure()
 		var = self.getVariable(variable)
 		var[np.where(self.H<=0)]=float('NaN')
 		plt.plot(self.t,np.nanmean(var,1))
 		plt.xlabel('t [years]')
 		plt.ylabel('$\langle$ '+ self.getTitle(variable) + '$\\rangle$' + '[' + self.getUnits(variable) + ']')
+
+		if logscale:
+			plt.yscale('log')
 		
 		if printToFile:
 			plt.savefig(self.foldername+'/PostProcess/average_'+ variable +'.eps', format='eps')
+			
+
+
+	def plotMax(self, variable, printToFile = False):
+		# Plots average of given variable where the ice thickness is nonzero
+		
+		#plt.figure()
+		var = self.getVariable(variable)
+		var[np.where(self.H<=0)]=float('NaN')
+		plt.plot(self.t,np.nanmax(var,1))
+		plt.xlabel('t [years]')
+		plt.ylabel('$max($ '+ self.getTitle(variable) + '$)$' + '[' + self.getUnits(variable) + ']')
+		
+		if printToFile:
+			plt.savefig(self.foldername+'/PostProcess/max_'+ variable +'.eps', format='eps')
+
 
 	def getVariable(self,variable,printToFile = False):
 		# returns variable from string for further processing
@@ -837,6 +892,10 @@ class PostProcess():
 			returnVal = self.hydraulic_potential
 		elif variable == 'water_pressure':
 			returnVal = self.hydraulic_potential - self.water_density*self.g*self.b/1e6
+		elif variable == 'effective_normal_stress':
+			returnVal = self.rho*self.H*self.g/1e6 - (self.hydraulic_potential - self.water_density*self.g*self.b/1e6)
+		elif variable == 'ExchangeTerm':
+			returnVal = self.ExchangeTerm
 		else:
 			raise Exception('variable '+variable+' does not exist')
 
@@ -858,6 +917,10 @@ class PostProcess():
 			returnVal = '$\phi$'
 		elif variable == 'water_pressure':
 			returnVal = '$p_w$'
+		elif variable == 'effective_normal_stress':
+			returnVal = '$\\sigma_n$'
+		elif variable == 'ExchangeTerm':
+			returnVal = 'Exchange source term'
 		else:
 			raise Exception('variable '+variable+' does not exist')
 		return returnVal
@@ -877,26 +940,58 @@ class PostProcess():
 			returnVal = 'MPa'
 		elif variable == 'water_pressure':
 			returnVal = 'MPa'
+		elif variable == 'effective_normal_stress':
+			returnVal = 'MPa'
+		elif variable == 'ExchangeTerm':
+			returnVal = 'm/yr'
 		else:
 			raise Exception('variable '+variable+' does not exist')
 		return returnVal
 
 
-	def plotPcolor(self,variable,printToFile = False):
+	def plotPcolor(self,variable,printToFile = False, logscale = False, transpose = False, colorbar = False):
 		# Plots spatiotemporal pcolor of given variable where the ice thickness is nonzero
-		plt.figure()
+		#plt.figure()
 		var = self.getVariable(variable)
-		var[np.where(self.H<=0)]=float('NaN')
-		plt.pcolor(self.x,self.t,var)
-		col = plt.colorbar()
-		col.set_label(self.getTitle(variable) + '[' + self.getUnits(variable) + ']')
-		plt.xlabel('x [m]')
-		plt.ylabel('t [years]')
+#		var[np.where(self.H<=0)]=float('NaN')
+		var = np.ma.masked_array(var,self.H<=0)
+
+		if transpose:
+			xval = self.t
+			yval = self.x
+			var = var.transpose()
+
+		else:
+			xval = self.x
+			yval = self.t
+	
+		if not logscale:
+			pcol = plt.pcolormesh(xval,yval,var)
+		else:
+			pcol = plt.pcolormesh(xval,yval,var,norm=LogNorm())
+
+		#pcol.set_rasterized(True)
+
+		if colorbar:
+			col = plt.colorbar()
+			col.set_label(self.getTitle(variable) + '[' + self.getUnits(variable) + ']')
+
+		if transpose:
+			plt.ylabel('x [m]')
+			plt.xlabel('t [years]')
+		else:
+			plt.xlabel('x [m]')
+			plt.ylabel('t [years]')
 
 		if printToFile:
 			plt.savefig(self.foldername+'/PostProcess/pcolor_'+ variable +'.png', format='png', dpi=1500)
 
+		return pcol
+
 
 	def show(self):
 		plt.show()
+
+	def close(self):
+		plt.close()
 
