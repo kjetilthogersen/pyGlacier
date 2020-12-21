@@ -61,8 +61,10 @@ variables = {
 		'dc': 1.0,
 		't_closure_zero_thickness': 1.0e5 } },
 'Output': 
-	{'foldername': 'testing',
+	{'foldername': 'testing_red',
 	'output_interval': 100,
+	'reduced': True,
+	'reduced_output_interval': 10,
 	'file_format': 'mat'} }
 
 

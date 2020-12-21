@@ -30,8 +30,6 @@ def step_diffusion_1d(dt,dx,phi,sourceTerm,D,left_boundary_condition,left_bounda
 	# Solves 1D diffusion on staggered grid; give the midpotins only, not the artificial points outside the boundary, they are specified by the given boundary condition. 
 	# Input values are dt, dx, phi (solution in the previous time-step) on the nodes, source term on the nodes, diffusion coefficient vector on midpoints (size N+1)
 	# Boundary conditions can be vonNeuman or Dirichlet
-	#
-	# @TODO: give equation
 	# 
 	def boundary_modifier(x,dt):
 		return {
@@ -54,8 +52,6 @@ def step_advection_diffusion_1d(dt,dx,phi,sourceTerm,D,Vphi,left_boundary_condit
 	# Solves 1D advection diffusion on staggered grid; give the midpotins only, not the artificial points outside the boundary, they are specified by the given boundary condition. 
 	# Input values are dt, dx, phi on the nodes, source term on the nodes, diffusion coefficient vector on midpoints (size N+1), as well as advection term Vphi on midpoints
 	# Boundary conditions can be vonNeuman or Dirichlet
-	#
-	# @TODO: give equation
 	# 
 	def boundary_modifier(x,dt):
 		return {
@@ -132,7 +128,7 @@ class Flowline:
 			self.FrictionLaw = None
 		else:
 			raise Exception('FrictionLaw keyword not recognized')
-		self.Output = Output(foldername = variables['Output']['foldername'], output_interval = variables['Output']['output_interval'], file_format = variables['Output']['file_format'], model = self)
+		self.Output = Output(foldername = variables['Output']['foldername'], output_interval = variables['Output']['output_interval'], file_format = variables['Output']['file_format'], model = self, reduced = variables['Output']['reduced'], reduced_output_interval = variables['Output']['reduced_output_interval'])
 
 		self.t = variables['solver']['variables'].get('t')
 		self.x = self.dx*np.asarray(range(0,np.size(self.b),1))
@@ -553,7 +549,7 @@ class ConduitSystem():
 		opening_term_constant = np.abs( 1.0/(model.rho*self.latent_heat) * np.abs(self.conduit_spacing*( (sheet_discharge[1:] + sheet_discharge[0:-1])/2.0 )) * hydraulic_potential_gradient_sheet )
 		opening_term_prefactor = np.abs( 1.0/(model.rho*self.latent_heat) * (np.abs(( self.channel_constant*(S_staggered)**(self.alpha-1)*np.abs(hydraulic_potential_gradient_conduit)**(self.beta-1) ) * hydraulic_potential_gradient_conduit)) )
 		
-		closure_term_prefactor = np.sign((normal_stress[1:]+normal_stress[0:-1])/2)*2*(np.abs((normal_stress[1:]+normal_stress[0:-1])/2)/(model.n*self.closure_coefficient))**model.n# + (model.u_SSA[1:]+model.u_SSA[0:-1])/2.0 #@@@
+		closure_term_prefactor = np.sign((normal_stress[1:]+normal_stress[0:-1])/2)*2*(np.abs((normal_stress[1:]+normal_stress[0:-1])/2)/(model.n*self.closure_coefficient))**model.n
 
 		#Semi-implicit time-integration:
 		S_staggered_previous_step = S_staggered
@@ -643,13 +639,15 @@ class HardBed_RSF():
 
 
 class Output():
-	def __init__(self, output_interval = 1, foldername = 'results', file_format = 'mat', model = None):
+	def __init__(self, output_interval = 1, foldername = 'results', file_format = 'mat', model = None, reduced = False, reduced_output_interval = 1):
 		self.ind = 0
 		self.output_interval = output_interval
 		self.file_format = file_format
 		self.foldername = foldername
 		self.filename = sys.argv[0]
 		self.model = model
+		self.reduced = reduced
+		self.reduced_output_interval = reduced_output_interval
 
 	def save(self):
 
@@ -665,6 +663,9 @@ class Output():
 			os.mkdir(self.foldername+'/data')
 			os.system('cp ' + self.filename + ' ' + self.foldername + '/src/' + 'run_script.py')				
 
+			if self.reduced:
+				os.mkdir(self.foldername+'/data_reduced')
+
 			# Create dictionary with initial conditions as defined in the different classes
 			varDictionary_INIT = model.getDictionary(init = True)
 			if(model.FrictionLaw is not None):
@@ -678,7 +679,7 @@ class Output():
 				with open (self.foldername+'/src/INIT.json', 'w') as file:
 					json.dump(varDictionary_INIT,file)
 
-		if(self.ind%self.output_interval==0):
+		if(self.ind%self.output_interval==0): #Output full data
 			varDictionary = model.getDictionary(init = False)
 			if(model.FrictionLaw is not None):
 				varDictionary.update(model.FrictionLaw.getDictionary(init = False))
@@ -690,6 +691,20 @@ class Output():
 			elif self.file_format == 'json':
 				with open (self.foldername+'/data/'+str(self.ind)+'.json', 'w') as file:
 					json.dump(varDictionary,file)
+
+		if(self.ind%self.reduced_output_interval==0): #Output average quantities
+			varDictionary = model.getDictionary(init = False)
+			if(model.FrictionLaw is not None):
+				varDictionary.update(model.FrictionLaw.getDictionary(init = False))
+			if(model.DrainageSystem is not None):
+				varDictionary.update(model.DrainageSystem.getDictionary(init = False))
+			
+			averageVarDictionary = self.getAverageDictionary(varDictionary)
+			if self.file_format == 'mat':
+				sio.savemat(self.foldername+'/data_reduced/'+str(self.ind)+'.mat', averageVarDictionary)
+			elif self.file_format == 'json':
+				with open (self.foldername+'/data_reduced/'+str(self.ind)+'.json', 'w') as file:
+					json.dump(averageVarDictionary,file)
 
 		self.ind = self.ind+1
 
@@ -709,6 +724,23 @@ class Output():
 		self.model.S = data.get('S')
 		self.FrictionLaw.state_parameter = data.get('state_parameter')
 		self.DrainageSystem.hydraulic_potential = data.get('hydraulic_potential')
+
+	def getAverageDictionary(self,dictionary):
+		zeroThickness = self.model.H<=0
+		averageVarDictionary = dictionary
+		for key in averageVarDictionary:
+			if isinstance(averageVarDictionary[key],list) and len(averageVarDictionary[key]) == len(zeroThickness): # take average of quantities defined across the entire domain
+				var = np.asarray(averageVarDictionary[key])
+				var[zeroThickness]=float('NaN')
+				var = np.nanmean(var)
+				averageVarDictionary[key] = var
+
+		return averageVarDictionary
+		
+
+
+		
+
 
 class PostProcess():
 	# Class for loading of entire datasets and basic plotting of standard figures with matplotlib.
@@ -840,10 +872,32 @@ class PostProcess():
 		t_peaks,_ = find_peaks(var,height=height)
 		return self.t[t_peaks],var[t_peaks]
 
+	def findMaxMaxima(self,variable,height = 100.0):
+		var = self.getMax(variable)
+		t_peaks,_ = find_peaks(var,height=height)
+		return self.t[t_peaks],var[t_peaks]
+
+	def findMaxAbove(self,variable,height = 100.0):
+		var = self.getMax(variable)
+		var[np.where(var>=height)]=height
+		t_peaks,_ = find_peaks(var,height=height)
+		return self.t[t_peaks],var[t_peaks]
+
+	def findAverageAbove(self,variable,height = 100.0):
+		var = self.getAverage(variable)
+		var[np.where(var>=height)]=height
+		t_peaks,_ = find_peaks(var,height=height)
+		return self.t[t_peaks],var[t_peaks]
+
 	def getAverage(self,variable):
 		var = self.getVariable(variable)
 		var[np.where(self.H<=0)]=float('NaN')
 		return np.nanmean(var,1)
+
+	def getMax(self,variable):
+		var = self.getVariable(variable)
+		var[np.where(self.H<=0)]=float('NaN')
+		return np.nanmax(var,1)
 
 	def plotAverage(self, variable, printToFile = False, logscale = False):
 		# Plots average of given variable where the ice thickness is nonzero
@@ -862,13 +916,9 @@ class PostProcess():
 			plt.savefig(self.foldername+'/PostProcess/average_'+ variable +'.eps', format='eps')
 			
 
-
 	def plotMax(self, variable, printToFile = False):
-		# Plots average of given variable where the ice thickness is nonzero
-		
-		#plt.figure()
-		var = self.getVariable(variable)
-		var[np.where(self.H<=0)]=float('NaN')
+		# Plots max of given variable where the ice thickness is nonzero
+		var = self.getMax(variable)
 		plt.plot(self.t,np.nanmax(var,1))
 		plt.xlabel('t [years]')
 		plt.ylabel('$max($ '+ self.getTitle(variable) + '$)$' + '[' + self.getUnits(variable) + ']')
@@ -918,7 +968,7 @@ class PostProcess():
 		elif variable == 'water_pressure':
 			returnVal = '$p_w$'
 		elif variable == 'effective_normal_stress':
-			returnVal = '$\\sigma_n$'
+			returnVal = '$\\sigma_N$'
 		elif variable == 'ExchangeTerm':
 			returnVal = 'Exchange source term'
 		else:
@@ -984,6 +1034,7 @@ class PostProcess():
 			plt.ylabel('t [years]')
 
 		if printToFile:
+			plt.gca().set_rasterized(True)			
 			plt.savefig(self.foldername+'/PostProcess/pcolor_'+ variable +'.png', format='png', dpi=1500)
 
 		return pcol
