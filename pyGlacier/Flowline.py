@@ -17,8 +17,6 @@ class Flowline:
 
 	def __init__(self, variables):
 
-
-
 		self.solver = variables['solver']['ID'] #SIA, SSA, coupled
 		self.H = variables['solver']['variables'].get('H')
 		self.b = variables['solver']['variables'].get('b')
@@ -129,6 +127,7 @@ class Flowline:
 
 		j = 0
 		i = 0
+		rel_error = 1e20
 		self.dt = dt_min
 		while self.t<t_max:
 			i+=1
