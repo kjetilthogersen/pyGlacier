@@ -61,11 +61,12 @@ variables = {
 		'dc': 1.0,
 		't_closure_zero_thickness': 1.0e5 } },
 'Output': 
-	{'foldername': 'testing_red',
+	{'foldername': 'runs/testing_red',
 	'output_interval': 100,
 	'reduced': True,
-	'reduced_output_interval': 10,
-	'file_format': 'mat'} }
+	'reduced_output_interval': 1,
+	'flush_interval': 100,
+	'file_format': 'hdf5'} }
 
 
 
@@ -76,7 +77,7 @@ variables = {
 
 # Initialize model:
 model = pg.Flowline(variables = variables)
-model.runInitializeSIA(dt = 1e6, t_max = 300*3.15e7)
+model.runInitializeSIA(dt = 1e6, t_max = 3*3.15e7)
 
 # run with adaptive time-stepping:
-model.runAdaptive(t_max = 1000*3.15e7, dt_min = 10, dt_max = 1e3, error_tolerance = 1e-3, interval = 10)
+model.runAdaptive(t_max = 1/10*3.15e7, dt_min = 10, dt_max = 1e3, error_tolerance = 1e-3, interval = 10)
