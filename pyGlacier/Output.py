@@ -14,7 +14,7 @@ class Output():
 	def __deepcopy__(self, memo): # don't copy output object (deepcopy is needed for adaptive error estimates)
 		pass 
 
-	def __init__(self, output_interval = 1, foldername = 'results', file_format = 'mat', model = None, reduced = False, reduced_output_interval = 1):
+	def __init__(self, output_interval = 1, foldername = 'results', file_format = 'mat', flush_interval = 1000, model = None, reduced = False, reduced_output_interval = 1):
 
 		self.ind = 0
 		self.output_interval = output_interval
@@ -24,6 +24,7 @@ class Output():
 		self.model = model
 		self.reduced = reduced
 		self.reduced_output_interval = reduced_output_interval
+		self.flush_interval = flush_interval
 
 	def save(self):
 
@@ -84,7 +85,7 @@ class Output():
 				for key in varDictionary:
 					self.output_file.root.full[key].append(np.array([varDictionary[key],]))
 
-				self.output_file.flush()
+				#self.output_file.flush()
 		
 		if(self.reduced and self.ind%self.reduced_output_interval==0): #Output average quantities
 			varDictionary = self.getDictionary(init = False)
@@ -98,27 +99,15 @@ class Output():
 			elif self.file_format == 'hdf5':
 				for key in varDictionary:
 					self.output_file.root.average[key].append(np.array([averageVarDictionary[key],]))
-				self.output_file.flush()
+				
+
+		if(self.file_format == 'hdf5' and self.ind%self.flush_interval==0):
+			self.output_file.flush()
 
 		self.ind = self.ind+1
 
 
-	def load(self, foldername, timestep, file_format): #TODO: implement hdf5 loading
-		# Loads state of model from file. Important note: This only loads the variables, all the initial parameters have to be set.
-
-		if file_format=='json':
-			with open(foldername+'/data/' + str(timestep) + '.json') as file:
-				data = json.load(file)
-		elif file_format=='mat':
-			data = sio.loadmat(foldername+'/data/' + str(timestep) + '.mat')
-
-		self.model.t = data.get('t')
-		self.model.H = data.get('H')
-		self.model.S = data.get('S')
-		self.FrictionLaw.state_parameter = data.get('state_parameter')
-		self.DrainageSystem.hydraulic_potential = data.get('hydraulic_potential')
-
-	def getAverageDictionary(self,dictionary):
+	def getAverageDictionary(self,dictionary): # return dictionary with all values in dictionary averaged over the glacier length
 		zeroThickness = self.model.H<=0
 		averageVarDictionary = dictionary
 		for key in averageVarDictionary:
@@ -129,6 +118,33 @@ class Output():
 				averageVarDictionary[key] = var
 
 		return averageVarDictionary
+
+
+	def getMaxDictionary(self,dictionary): # return dictionary with maximum of all values in dictionary over the glacier length
+		zeroThickness = self.model.H<=0
+		maxVarDictionary = dictionary
+		for key in maxVarDictionary:
+			if isinstance(maxVarDictionary[key],list) and len(maxVarDictionary[key]) == len(zeroThickness): # take average of quantities defined across the entire domain
+				var = np.asarray(maxVarDictionary[key])
+				var[zeroThickness]=float('NaN')
+				var = np.nanmax(var)
+				maxVarDictionary[key] = var
+
+		return maxVarDictionary
+
+
+	def getMinDictionary(self,dictionary):# return dictionary with minimum of all values in dictionary over the glacier length
+		zeroThickness = self.model.H<=0
+		minVarDictionary = dictionary
+		for key in minVarDictionary:
+			if isinstance(minVarDictionary[key],list) and len(minVarDictionary[key]) == len(zeroThickness): # take average of quantities defined across the entire domain
+				var = np.asarray(maxVarDictionary[key])
+				var[zeroThickness]=float('NaN')
+				var = np.nanmin(var)
+				minVarDictionary[key] = var
+
+		return minVarDictionary
+
 
 	def getDictionary(self,init=False):
 		varDictionary = self.model.getDictionary(init = init)

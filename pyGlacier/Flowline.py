@@ -47,7 +47,7 @@ class Flowline:
 		else:
 			raise Exception('FrictionLaw keyword not recognized')
 		
-		self.Output = Output(foldername = variables['Output']['foldername'], output_interval = variables['Output']['output_interval'], file_format = variables['Output']['file_format'], model = self, reduced = variables['Output']['reduced'], reduced_output_interval = variables['Output']['reduced_output_interval'])
+		self.Output = Output(foldername = variables['Output']['foldername'], output_interval = variables['Output']['output_interval'], flush_interval = variables['Output']['flush_interval'], file_format = variables['Output']['file_format'], model = self, reduced = variables['Output']['reduced'], reduced_output_interval = variables['Output']['reduced_output_interval'])
 
 		self.t = variables['solver']['variables'].get('t')
 		self.x = self.dx*np.asarray(range(0,np.size(self.b),1))
@@ -156,7 +156,7 @@ class Flowline:
 					self.dt = dt_min
 
 			if(self.Output is not None):
-				if(i%self.Output.output_interval==0):
+				if(i%self.Output.flush_interval==0):
 					print(str(self.t/secondyears) + ' years, dt = ' + str(self.dt) + 's, rel_error = ' + str(rel_error))
 
 			if(np.isnan(np.sum(self.U))): # exit simulation if nan values are found in the velocity

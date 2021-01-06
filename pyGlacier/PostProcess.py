@@ -7,6 +7,8 @@ import math
 from scipy.signal import find_peaks
 secondyears = 60*60*24*365.25
 
+#TODO: change the PostProcess class to use hdf5 file format as well. write functions to load all data into memory, but also to return specific data.
+
 class PostProcess():
 	# Class for loading of entire datasets and basic plotting of standard figures with matplotlib.
 
@@ -192,7 +194,7 @@ class PostProcess():
 			plt.savefig(self.foldername+'/PostProcess/max_'+ variable +'.eps', format='eps')
 
 
-	def getVariable(self,variable,printToFile = False):
+	def getVariable(self,variable):
 		# returns variable from string for further processing
 		
 		if variable == 'U':
