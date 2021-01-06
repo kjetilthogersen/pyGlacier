@@ -211,7 +211,7 @@ class Flowline:
 		if init:
 			return {'A':self.A, 'b':self.b.tolist(), 'dx':self.dx, 'rho':self.rho, 'g':self.g, 'n':self.n, 'width':self.width, 'solver':self.solver, 'x':self.x.tolist(), 'dt':self.dt}
 		else:
-			dictionary = {'U':self.U.tolist(), 'H':self.H.tolist(), 't':self.t}
+			dictionary = {'U':self.U.tolist(), 'H':self.H.tolist(), 't':self.t, 'length':np.sum(self.H>0)*self.dx}
 			if self.solver == 'coupled':
 				dictionary.update({'U_SIA':self.u_SIA.tolist(), 'U_SSA':self.u_SSA.tolist()})
 			return dictionary
