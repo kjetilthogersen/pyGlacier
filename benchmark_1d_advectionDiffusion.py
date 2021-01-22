@@ -1,11 +1,9 @@
-#### TEST: Solve adcevtion diffusion equation and compare to analytical solution
+#### TEST: Solve advection diffusion equation and compare to analytical solution
 import pyGlacier as solve
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 #phi(x) = c1*D/V*np.exp(-V*x/D) + c2
-
 
 dt = 1
 x = range(-1,1,1000)
@@ -13,8 +11,6 @@ dx = x[1]-x[0]
 D = 1
 V = 1
 phi = -np.sin(phi*x*np.exp(-c*x/(2*nu)))
-
-
 
 left_boundary_condition = 'Dirichlet'
 left_boundary_condition_value = 0.0;
