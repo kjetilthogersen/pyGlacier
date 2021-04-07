@@ -15,7 +15,11 @@ class Flowline:
 	# Dependency on 1D solvers
 	#
 
+
 	def __init__(self, variables):
+
+		def zero_func(model): #Default zero function (if function not supplied by user)
+			return model.b*0
 
 		self.solver = variables['solver']['ID'] #SIA, SSA, coupled
 		self.H = variables['solver']['variables'].get('H')
@@ -28,6 +32,8 @@ class Flowline:
 		self.dt = variables['solver']['variables'].get('dt')
 		self.width = variables['solver']['variables'].get('width')
 		self.SMB = variables['solver']['variables'].get('SMB')
+		self.Output = variables['Output']['ID']
+
 		if self.SMB==None:
 			self.SMB = zero_func
 
@@ -35,7 +41,7 @@ class Flowline:
 		if variables['DrainageSystem']['ID']=='CoupledConduitCavitySheet':
 			self.DrainageSystem = CoupledConduitCavitySheet(variables = variables['DrainageSystem']['variables'], model = self)
 		elif variables['DrainageSystem']['ID']=='CavitySheet':
-			raise Exception('CavityShhet implementation not finished')
+			raise Exception('CavitySheet implementation not finished')
 		elif variables['DrainageSystem']['ID']=='None':
 			self.DrainageSystem = None
 		else:
@@ -47,7 +53,13 @@ class Flowline:
 		else:
 			raise Exception('FrictionLaw keyword not recognized')
 		
-		self.Output = Output(foldername = variables['Output']['foldername'], output_interval = variables['Output']['output_interval'], flush_interval = variables['Output']['flush_interval'], file_format = variables['Output']['file_format'], model = self, reduced = variables['Output']['reduced'], reduced_output_interval = variables['Output']['reduced_output_interval'])
+		if self.Output == 'standard':
+			self.Output = Output(foldername = variables['Output']['foldername'], output_interval = variables['Output']['output_interval'], flush_interval = variables['Output']['flush_interval'], file_format = variables['Output']['file_format'], model = self, reduced = variables['Output']['reduced'], reduced_output_interval = variables['Output']['reduced_output_interval'])
+		elif self.Output == 'None':
+			pass
+		else:
+			raise Exception('Ouput keyword not recognized')
+
 
 		self.t = variables['solver']['variables'].get('t')
 		self.x = self.dx*np.asarray(range(0,np.size(self.b),1))
@@ -112,7 +124,7 @@ class Flowline:
 		self.step_massContinuity()
 
 
-		if(self.Output is not None):
+		if(self.Output is not 'None'):
 			self.Output.save()
 		
 		self.t = self.t + self.dt
@@ -155,7 +167,7 @@ class Flowline:
 				elif self.dt<dt_min:
 					self.dt = dt_min
 
-			if(self.Output is not None):
+			if(self.Output is not 'None'):
 				if(i%self.Output.flush_interval==0):
 					print(str(self.t/secondyears) + ' years, dt = ' + str(self.dt) + 's, rel_error = ' + str(rel_error))
 
@@ -175,8 +187,8 @@ class Flowline:
 		i = 0
 
 		self.dt = dt
-		if(self.Output is None):
-			interval = 100
+		if(self.Output is 'None'):
+			interval = int(t_max/dt/25)
 		else:
 			interval = self.Output.output_interval
 

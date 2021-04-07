@@ -19,6 +19,7 @@ class CoupledConduitCavitySheet():
 		#Conduit
 		self.S = variables['S']
 		self.channel_constant = variables['channel_constant']
+		self.conduit_spacing = variables['conduit_spacing']
 
 		#Sheet
 		self.hydraulic_potential_sheet = variables['hydraulic_potential']
@@ -28,7 +29,6 @@ class CoupledConduitCavitySheet():
 		self.h0 = variables['h0']
 		self.background_conductivity = variables['background_conductivity']
 		self.sheet_conductivity = variables['sheet_conductivity']
-		self.conduit_spacing = variables['conduit_spacing']
 
 		self.sheet_discharge = 0.0
 

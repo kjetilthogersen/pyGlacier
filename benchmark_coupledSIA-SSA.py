@@ -61,19 +61,13 @@ variables = {
 		'dc': 1.0,
 		't_closure_zero_thickness': 1.0e5 } },
 'Output': 
-	{'foldername': 'runs/testing_red',
+	{'ID': 'standard',
+	'foldername': 'runs/testing_red',
 	'output_interval': 100,
 	'reduced': True,
 	'reduced_output_interval': 1,
 	'flush_interval': 100,
 	'file_format': 'hdf5'} }
-
-
-
-#model = solve.Flowline(variables = variables)
-#model.Output.load(foldername = 'testing',timestep = 100, file_format = 'mat')
-#print(model.H)
-#print(model.S)
 
 # Initialize model:
 model = pg.Flowline(variables = variables)

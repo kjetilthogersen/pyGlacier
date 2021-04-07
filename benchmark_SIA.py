@@ -13,6 +13,7 @@ def halfar(t,r,gamma): # Returns the analytical solution at a given time
 	H[np.where(abs(r)>theta*t**(alpha))]=0
 	return H
 
+
 A = 1e-24 #Rheology constant
 rho = 900.0 #Ice density
 g = 9.8
@@ -66,8 +67,10 @@ plt.ylabel('y [m]')
 ax.legend()
 plt.show()
 
+
 # Create glacier object
 glacier = pg.Flowline(variables = variables)
+
 
 # Time loop
 for i in range(1,np.size(t)):
