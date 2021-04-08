@@ -204,7 +204,7 @@ class Flowline:
 
 		self.dt = dt
 		if(self.Output is 'None'):
-			interval = int(t_max/dt/25)
+			interval = int(secondyears/dt)
 		else:
 			interval = self.Output.output_interval
 
