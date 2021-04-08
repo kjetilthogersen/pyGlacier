@@ -9,17 +9,21 @@ def step_diffusion_1d(dt,dx,phi,sourceTerm,D,left_boundary_condition,left_bounda
 	# Input values are dt, dx, phi (solution in the previous time-step) on the nodes, source term on the nodes, diffusion coefficient vector on midpoints (size N+1)
 	# Boundary conditions can be vonNeuman or Dirichlet
 	# 
-	def boundary_modifier(x,dt):
+	def boundary_modifier(x,dx):
 		return {
         	'Dirichlet': [1,0,1],
-        	'vonNeuman': [1,-1,dt]
+        	'vonNeuman': [1,-1,dx]
     	}[x]
 	N_intervals = np.size(phi)-1
 	rhs = -dx*dx*(phi/dt+sourceTerm)
 	left_modifier = boundary_modifier(left_boundary_condition,dt)
 	right_modifier = boundary_modifier(right_boundary_condition,dt)
-	rhs[0] = -left_modifier[2]*left_boundary_condition_value
-	rhs[np.size(rhs)-1] = right_modifier[2]*right_boundary_condition_value
+	if left_boundary_condition=='vonNeuman':
+		rhs[0] = -left_modifier[2]*left_boundary_condition_value
+	elif left_boundary_condition=='Dirichlet':
+		rhs[0] = left_modifier[2]*left_boundary_condition_value
+	rhs[-1] = right_modifier[2]*right_boundary_condition_value
+
 	A = csc_matrix(spdiags( [ np.hstack((D[0:N_intervals-1],right_modifier[1],0)),  np.hstack((left_modifier[0],-(D[0:N_intervals-1]+D[1:N_intervals]+dx*dx/dt),right_modifier[0])),   np.hstack((0,left_modifier[1],D[1:N_intervals]))  ], [-1,0,1], N_intervals+1, N_intervals+1))
 	phi = dsolve.spsolve(A, rhs, use_umfpack=True)
 	return phi
@@ -34,15 +38,17 @@ def step_advection_diffusion_1d(dt,dx,phi,sourceTerm,D,Vphi,left_boundary_condit
 	def boundary_modifier(x,dt):
 		return {
         	'Dirichlet': [1,0,1],
-        	'vonNeuman': [1,-1,dt]
+        	'vonNeuman': [1,-1,dx]
     	}[x]
 	N_intervals = np.size(phi)-1
-	left_modifier = boundary_modifier(left_boundary_condition,dt)
-	right_modifier = boundary_modifier(right_boundary_condition,dt)
+	left_modifier = boundary_modifier(left_boundary_condition,dx)
+	right_modifier = boundary_modifier(right_boundary_condition,dx)
 	rhs = -dx*dx*(phi/dt+sourceTerm + np.gradient(Vphi)/dx) #Here we are treating the advection term explicitly as an rhs contribution
-	rhs[0] = -left_modifier[2]*left_boundary_condition_value
+	if left_boundary_condition=='vonNeuman':
+		rhs[0] = -left_modifier[2]*left_boundary_condition_value
+	elif left_boundary_condition=='Dirichlet':
+		rhs[0] = left_modifier[2]*left_boundary_condition_value
 	rhs[-1] = right_modifier[2]*right_boundary_condition_value
-
 	A = csc_matrix(spdiags( [ np.hstack((D[0:N_intervals-1],right_modifier[1],0)),  np.hstack((left_modifier[0],-(D[0:N_intervals-1]+D[1:N_intervals]+dx*dx/dt),right_modifier[0])),   np.hstack((0,left_modifier[1],D[1:N_intervals]))], [-1,0,1], N_intervals+1, N_intervals+1))
 	phi = dsolve.spsolve(A, rhs, use_umfpack=True)
 	return phi

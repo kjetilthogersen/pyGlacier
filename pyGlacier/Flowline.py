@@ -10,11 +10,8 @@ from .Output import Output
 
 class Flowline:
 	#
-	# Solves a flowline model based on SIA and/or SIA. Semi-implicit approach for the advection diffusion equation when SSA is active. SIA is solved implicityly. The integration step is performed with Euler.
+	# Solves a flowline model based on SIA and/or SIA. Semi-implicit approach for the advection diffusion equation when SSA is active. SIA is solved implicityly. The integration step is performed with backward Euler (explicit for the advection term).
 	# 
-	# Dependency on 1D solvers
-	#
-
 
 	def __init__(self, variables):
 
@@ -33,6 +30,23 @@ class Flowline:
 		self.width = variables['solver']['variables'].get('width')
 		self.SMB = variables['solver']['variables'].get('SMB')
 		self.Output = variables['Output']['ID']
+
+		# Cast BC (thickness or surfae slope) to Dirichlet or vonNeuman for later use
+		self.left_bc_type = variables['solver']['boundaryConditions']['left']['type']
+		self.left_bc_val = variables['solver']['boundaryConditions']['left'].get('val')
+		if self.left_bc_type == 'thickness':
+			self.left_bc_val+=self.b[0]
+			self.left_bc_type = 'Dirichlet'
+		elif self.left_bc_type == 'surface slope':
+			self.left_bc_type = 'vonNeuman'
+
+		self.right_bc_type = variables['solver']['boundaryConditions']['right']['type']
+		self.right_bc_val = variables['solver']['boundaryConditions']['right'].get('val')
+		if self.right_bc_type == 'thickness':
+			self.right_bc_val+=self.b[-1]
+			self.right_bc_type = 'Dirichlet'
+		elif self.right_bc_type == 'surface slope':
+			self.right_bc_type = 'vonNeuman'
 
 		if self.SMB==None:
 			self.SMB = zero_func
@@ -85,7 +99,9 @@ class Flowline:
 		# the shallow ice approximation and the shallow shelf approximation as well as a given surface mass balance
 		h = self.H+self.b
 		D_staggered = (self.D[1:]+self.D[0:-1])/2.0 #Staggered grid
-		h = step_advection_diffusion_1d(dt = self.dt, dx = self.dx, phi = h, sourceTerm = self.SMB(self), D = D_staggered, Vphi = -self.sliding_velocity*self.H, left_boundary_condition = 'vonNeuman',left_boundary_condition_value = 0.0, right_boundary_condition = 'vonNeuman', right_boundary_condition_value = 0.0)
+
+
+		h = step_advection_diffusion_1d(dt = self.dt, dx = self.dx, phi = h, sourceTerm = self.SMB(self), D = D_staggered, Vphi = -self.sliding_velocity*self.H, left_boundary_condition = self.left_bc_type, left_boundary_condition_value = self.left_bc_val, right_boundary_condition = self.right_bc_type, right_boundary_condition_value = self.right_bc_val)
 		#h = step_advection_diffusion_1d(dt = self.dt, dx = self.dx, phi = h, sourceTerm = self.SMB(h), D = D_staggered, Vphi = -self.sliding_velocity*self.H, left_boundary_condition = 'vonNeuman',left_boundary_condition_value = 0.0, right_boundary_condition = 'Dirichlet', right_boundary_condition_value = self.b[-1])
 		#h = step_diffusion_1d(dt = self.dt, dx = self.dx, phi = h, sourceTerm = self.SMB, D = D_staggered, left_boundary_condition = 'vonNeuman',left_boundary_condition_value = 0.0, right_boundary_condition = 'vonNeuman', right_boundary_condition_value = 0.0)
 		self.H = h-self.b

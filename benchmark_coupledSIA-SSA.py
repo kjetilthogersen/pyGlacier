@@ -30,7 +30,14 @@ variables = {
 		'H': 0*x,
 		'b': b,
 		'dx': dx,
-		'dt': 1e3} },
+		'dt': 1e3},
+	'boundaryConditions':{
+		'left':{
+			'type': 'dirichlet',
+			'val': 0}
+		'right':{
+			'type': 'dirichlet'
+			'val': 0} } } },
 'DrainageSystem': 
 	{'ID': 'CoupledConduitCavitySheet',
 	'variables': {
