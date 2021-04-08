@@ -106,6 +106,12 @@ class Output():
 
 		self.ind = self.ind+1
 
+	def closeFile(self):
+		if self.file_format=='hdf5':
+			self.output_file.close()
+		else:
+			pass
+
 
 	def getAverageDictionary(self,dictionary): # return dictionary with all values in dictionary averaged over the glacier length
 		zeroThickness = self.model.H<=0

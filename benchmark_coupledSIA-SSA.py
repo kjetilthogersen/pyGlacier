@@ -33,11 +33,11 @@ variables = {
 		'dt': 1e3},
 	'boundaryConditions':{
 		'left':{
-			'type': 'dirichlet',
-			'val': 0}
+			'type': 'surface slope',
+			'val': 0},
 		'right':{
-			'type': 'dirichlet'
-			'val': 0} } } },
+			'type': 'thickness',
+			'val': 0} } },
 'DrainageSystem': 
 	{'ID': 'CoupledConduitCavitySheet',
 	'variables': {

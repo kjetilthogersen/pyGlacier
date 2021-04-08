@@ -68,6 +68,7 @@ class Flowline:
 			raise Exception('FrictionLaw keyword not recognized')
 		
 		if self.Output == 'standard':
+			print(self.Output)
 			self.Output = Output(foldername = variables['Output']['foldername'], output_interval = variables['Output']['output_interval'], flush_interval = variables['Output']['flush_interval'], file_format = variables['Output']['file_format'], model = self, reduced = variables['Output']['reduced'], reduced_output_interval = variables['Output']['reduced_output_interval'])
 		elif self.Output == 'None':
 			pass
@@ -139,8 +140,7 @@ class Flowline:
 
 		self.step_massContinuity()
 
-
-		if(self.Output is not 'None'):
+		if(self.Output != 'None'):
 			self.Output.save()
 		
 		self.t = self.t + self.dt
@@ -153,6 +153,11 @@ class Flowline:
 		print('error tolerance: ' + str(error_tolerance))
 		print('**********************************')
 
+		if(self.Output is 'None'):
+			interval = int(secondyears/dt_max)
+		else:
+			interval = self.Output.output_interval
+
 		j = 0
 		i = 0
 		rel_error = 1e20
@@ -162,7 +167,7 @@ class Flowline:
 			
 			if(i%interval==0):
 				model_copy = copy.deepcopy(self)
-				model_copy.Output = None
+				model_copy.Output ='None'
 				model_copy.dt = self.dt/2.0
 
 			self.step()
@@ -190,8 +195,8 @@ class Flowline:
 			if(np.isnan(np.sum(self.U))): # exit simulation if nan values are found in the velocity
 				raise Exception('NaN values encountered in soultion. Aborting simulation')
 
+		self.Output.closeFile() # close open files
 		print('********** RUN ADAPTIVE FINISHED **********')
-
 		return 0
 
 	def run(self,t_max,dt):
@@ -214,6 +219,7 @@ class Flowline:
 			if(i%interval==0):
 				print(str(self.t/secondyears) + ' years, dt = ' + str(self.dt) + 's')
 
+		print('********** RUN FINISHED **********')
 		return 0
 
 
@@ -226,7 +232,7 @@ class Flowline:
 		model_copy.solver = 'SIA'
 		model_copy.DrainageSystem = None
 		model_copy.FrictionLaw = None
-		model_copy.Output = None
+		model_copy.Output = 'None'
 		model_copy.run(t_max = t_max, dt = dt)
 		self.H = model_copy.H
 
