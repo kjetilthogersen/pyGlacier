@@ -145,7 +145,7 @@ class Flowline:
 		
 		self.t = self.t + self.dt
 
-	def runAdaptive(self,t_max,dt_min, dt_max, error_tolerance, interval): #TODO: make sure the error measures will work for all choises of models
+	def runAdaptive(self,t_max,dt_min, dt_max, error_tolerance, interval): #TODO: make sure the error measures will work for all choices of models
 		
 		print('********** RUN ADAPTIVE **********')
 		print('t max: ' + str(t_max/secondyears) + ' years')
@@ -155,8 +155,6 @@ class Flowline:
 
 		if(self.Output is 'None'):
 			interval = int(secondyears/dt_max)
-		else:
-			interval = self.Output.output_interval
 
 		j = 0
 		i = 0
