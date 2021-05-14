@@ -153,9 +153,6 @@ class Flowline:
 		print('error tolerance: ' + str(error_tolerance))
 		print('**********************************')
 
-		if(self.Output is 'None'):
-			interval = int(secondyears/dt_max)
-
 		j = 0
 		i = 0
 		rel_error = 1e20
