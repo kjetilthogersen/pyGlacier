@@ -69,7 +69,7 @@ variables = {
 		't_closure_zero_thickness': 1.0e5 } },
 'Output': 
 	{'ID': 'standard',
-	'foldername': 'runs/testing_red',
+	'foldername': 'run_benchmarkSIA-SSA',
 	'output_interval': 100,
 	'reduced': True,
 	'reduced_output_interval': 1,
