@@ -93,7 +93,7 @@ class Flowline:
 
 	def superposed(self,u):
 		yearstoseconds = 365.25*24*60*60
-		return 1.0-2.0/np.pi*np.arctan((u/yearstoseconds)**2.0 / 100.0**2.0)
+		return 1-2.0/np.pi*np.arctan((u*yearstoseconds)**2.0 / 100.0**2.0)
 
 	def step_massContinuity(self):
 		# Calculates the mass continuity for a given diffusion coefficients from the
@@ -114,10 +114,10 @@ class Flowline:
 			self.update_ssa_flowline()
 
 		if(self.solver == 'coupled'):
-			self.U = (1.0 - self.superposed(self.u_SSA))*self.u_SIA + self.superposed(self.u_SSA)*self.u_SSA
-			self.sliding_velocity = self.superposed(self.u_SSA)*self.u_SSA
-			self.D = (1.0 - self.superposed(self.u_SIA))*self.D_SIA
-			self.D = self.D_SIA
+			self.U = self.superposed(self.u_SSA)*self.u_SIA + (1-self.superposed(self.u_SSA))*self.u_SSA
+			#self.sliding_velocity = (1-self.superposed(self.u_SSA))*self.u_SSA
+			self.sliding_velocity = self.u_SSA
+			self.D = self.superposed(self.u_SSA)*self.D_SIA
 
 		elif(self.solver == 'SIA'):
 			self.U = self.u_SIA
@@ -265,12 +265,15 @@ class Flowline:
 		rel_error = 1.0
 		i = 0
 
-		u = self.sliding_velocity
+		if 'self.u_SSA' in locals():
+			u = self.u_SSA
+		else:
+			u = self.H*0
+
+		self.FrictionLaw.update_friction_coefficient() #Update friction coefficient
+		self.FrictionLaw.update_lateral_drag() #Update lateral drag
 
 		while((rel_error>tol)&(i<itermax)):
-
-			self.FrictionLaw.update_friction_coefficient() #Update friction coefficient
-			self.FrictionLaw.update_lateral_drag() #Update lateral drag
 
 			alpha = self.FrictionLaw.friction_coefficient + self.FrictionLaw.lateral_drag #Combine basal and lateral drag in a single coefficient
 

@@ -7,7 +7,7 @@ class HardBed_RSF():
 	#
 
 	def __init__(self, variables, model = None):
-	
+
 		self.state_parameter = variables['state_parameter']
 		self.C = variables['C']
 		self.As = variables['As']
@@ -19,7 +19,7 @@ class HardBed_RSF():
 		self.model = model
 
 	def step(self):
-		
+
 		model = self.model
 		eps = 1.0e-20
 		#sigma_N = model.rho*model.g*model.H - model.DrainageSystem.water_pressure*(model.DrainageSystem.water_pressure>0.0)
@@ -29,7 +29,7 @@ class HardBed_RSF():
 		alpha = (self.q-1.0)**(self.q-1.0)/(self.q**self.q)
 		theta_dagger = (1.0/(1.0 + alpha*xi**self.q))**(1.0/self.m)
 
-		self.state_parameter_derivative = (np.abs(model.sliding_velocity)/self.dc)*(theta_dagger-self.state_parameter) + (theta_dagger-self.state_parameter)/self.tc		
+		self.state_parameter_derivative = (np.abs(model.sliding_velocity)/self.dc)*(theta_dagger-self.state_parameter) + (theta_dagger-self.state_parameter)/self.tc
 
 		self.state_parameter_derivative[np.where(model.H<=0)] = self.state_parameter_derivative[np.where(model.H<=0)] + (1-self.state_parameter[np.where(model.H<=0)])/self.t_closure_zero_thickness# Quickly close cavities when ice is gone:
 		self.state_parameter_derivative[np.where(self.state_parameter+self.state_parameter_derivative*model.dt < 0.0)] = -self.state_parameter[np.where(self.state_parameter+self.state_parameter_derivative*model.dt < 0.0)]/model.dt #avoid unphysical result by chaning derivative that will pass 0 (although time-step should be small enough so that this is not needed)
