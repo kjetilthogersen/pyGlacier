@@ -7,6 +7,8 @@ __pycache__/
 *$py.class
 
 .ipynb_checkpoints/
+*checkpoint.ipynb
+dataFromExamples/
 
 # C extensions
 *.so
