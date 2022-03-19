@@ -15,7 +15,7 @@ class CoupledConduitCavitySheet():
 		self.water_density = variables['water_density']
 		self.minimum_drainage_thickness = variables['minimum_drainage_thickness']
 		self.closure_coefficient = variables['closure_coefficient']
-		
+
 		#Conduit
 		self.S = variables['S']
 		self.channel_constant = variables['channel_constant']
@@ -40,8 +40,6 @@ class CoupledConduitCavitySheet():
 
 	def update_water_pressure(self):
 
-		model = self.model
-
 		self.sheet_system.update_water_pressure()
 		self.water_pressure = self.sheet_system.water_pressure
 		self.hydraulic_potential = self.sheet_system.hydraulic_potential
@@ -49,8 +47,6 @@ class CoupledConduitCavitySheet():
 		#self.hydraulic_potential = self.water_pressure + self.water_density*model.g*model.b
 
 	def step(self):
-
-		model = self.model
 
 		def sheet_system_source_term(time):
 			return self.source_term(time) - self.conduit_system.exchange_source_term
@@ -61,14 +57,12 @@ class CoupledConduitCavitySheet():
 		self.sheet_discharge = self.sheet_system.getDischarge()
 
 		self.update_water_pressure()
-		self.hydraulic_potential = self.water_pressure + self.water_density*model.g*model.b
+		self.hydraulic_potential = self.water_pressure + self.water_density*self.model.g*self.model.b
 
 		self.conduit_system.step()
 		self.S = self.conduit_system.S
 
 	def getDictionary(self, init = False):
-
-		model = self.model
 
 		if init:
 			return {'conduit_spacing':self.conduit_spacing, 'ev':self.ev, 'h0':self.h0,
@@ -77,4 +71,4 @@ class CoupledConduitCavitySheet():
 			'sheet_conductivity':self.sheet_conductivity, 'channel_constant':self.channel_constant, 'closure_coefficient':self.closure_coefficient}
 		else:
 			return {'hydraulic_potential':self.hydraulic_potential.tolist(), 'water_pressure':self.water_pressure.tolist(), 'S':self.S.tolist(),
-			'ExchangeTerm':self.conduit_system.exchange_source_term.tolist(), 'SourceTerm':self.source_term(model)}
+			'ExchangeTerm':self.conduit_system.exchange_source_term.tolist(), 'SourceTerm':self.source_term(self.model)}

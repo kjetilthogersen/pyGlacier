@@ -115,8 +115,7 @@ class Flowline:
 
 		if(self.solver == 'coupled'):
 			self.U = self.superposed(self.u_SSA)*self.u_SIA + (1-self.superposed(self.u_SSA))*self.u_SSA
-			#self.sliding_velocity = (1-self.superposed(self.u_SSA))*self.u_SSA
-			self.sliding_velocity = self.u_SSA
+			self.sliding_velocity = self.u_SSA # Sliding velocity kept separate in the SSA solver. Superposition done afterwards to get U
 			self.D = self.superposed(self.u_SSA)*self.D_SIA
 
 		elif(self.solver == 'SIA'):
