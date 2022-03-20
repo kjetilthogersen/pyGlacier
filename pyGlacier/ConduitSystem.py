@@ -4,7 +4,7 @@ class ConduitSystem():
 	def __init__(self, hydraulic_potential = 0.0, latent_heat = 3.35e5, source_term = 0.0, water_density = 1000.0, minimum_drainage_thickness = 0.0,
 		S = 1.0, conduit_spacing = 100.0, closure_coefficient = 1.0e8, channel_constant = 0.1, alpha = 4.0/3.0, beta = 3.0/2.0, model = None):
 		#
-		# The conduit system is solved under the approximation of zero water pressur in the sheet and the conduit. 
+		# The conduit system is solved under the approximation of zero water pressur in the sheet and the conduit.
 		# This allows for the computation of a source term between the sheet and the conduit that causes equal water pressures.
 		# Water pressure is assumed to be positive. When the water pressure is zero, the melt opening term is set to zero to account for partially filled conduits
 		#
@@ -55,20 +55,20 @@ class ConduitSystem():
 
 		opening_term_constant = np.abs( 1.0/(model.rho*self.latent_heat) * np.abs(self.conduit_spacing*( (sheet_discharge[1:] + sheet_discharge[0:-1])/2.0 )) * hydraulic_potential_gradient_sheet )
 		opening_term_prefactor = np.abs( 1.0/(model.rho*self.latent_heat) * (np.abs(( self.channel_constant*(S_staggered)**(self.alpha-1)*np.abs(hydraulic_potential_gradient_conduit)**(self.beta-1) ) * hydraulic_potential_gradient_conduit)) )
-		
+
 		closure_term_prefactor = np.sign((normal_stress[1:]+normal_stress[0:-1])/2)*2*(np.abs((normal_stress[1:]+normal_stress[0:-1])/2)/(model.n*self.closure_coefficient))**model.n
 
 		#Semi-implicit time-integration:
 		S_staggered_previous_step = S_staggered
 		B = opening_term_constant
 		A = opening_term_prefactor - closure_term_prefactor
-		
+
 		S_staggered = (B*model.dt + S_staggered_previous_step)/(1.0 - A*model.dt)
-		
+
 		# Calculate dS_dt (needed for source term)
 		opening_term = opening_term_constant + opening_term_prefactor*(S_staggered+S_staggered_previous_step)/2.0
 		closure_term = closure_term_prefactor*(S_staggered+S_staggered_previous_step)/2.0
-		dS_dt = opening_term - closure_term 
+		dS_dt = opening_term - closure_term
 
 		# Calculate source term
 		conduit_discharge = -self.channel_constant*((S_staggered+S_staggered_previous_step)/2.0)**self.alpha*np.abs(hydraulic_potential_gradient_conduit)**(self.beta-1.0)*np.sign(hydraulic_potential_gradient_conduit)
@@ -76,7 +76,7 @@ class ConduitSystem():
 		self.exchange_source_term = exchange_source_term_times_conduit_spacing/self.conduit_spacing
 
 		# Make absolutely sure the channel size is never negative (small negative values could cause unstable behavior).
-		S_staggered[np.where(S_staggered<0.0)]=0.0 
+		S_staggered[np.where(S_staggered<0.0)]=0.0
 
 		# Back to regular grid:
 		S_staggered = np.hstack([S_staggered[0],S_staggered,S_staggered[-1]])
