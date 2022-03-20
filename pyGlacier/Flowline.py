@@ -83,6 +83,10 @@ class Flowline:
 			self.DrainageSystem.update_water_pressure()
 
 		self.sliding_velocity = np.zeros(np.size(self.b))
+		if self.solver == 'SSA' or self.solver =='coupled':
+			self.u_SSA = np.zeros(np.size(self.b))
+		elif solver == 'SIA':
+			self.u_SIA = np.zeros(np.size(self.b))
 
 
 		print('********** INITIALIZING FLOWLINE **********')
@@ -115,7 +119,8 @@ class Flowline:
 
 		if(self.solver == 'coupled'):
 			self.U = self.superposed(self.u_SSA)*self.u_SIA + (1-self.superposed(self.u_SSA))*self.u_SSA
-			self.sliding_velocity = self.u_SSA # Sliding velocity kept separate in the SSA solver. Superposition done afterwards to get U
+			#self.sliding_velocity = self.u_SSA # Sliding velocity kept separate in the SSA solver. Superposition done afterwards to get U
+			self.sliding_velocity = (1-self.superposed(self.u_SSA))*self.u_SSA # Sliding velocity
 			self.D = self.superposed(self.u_SSA)*self.D_SIA
 
 		elif(self.solver == 'SIA'):
@@ -264,17 +269,13 @@ class Flowline:
 		rel_error = 1.0
 		i = 0
 
-		if 'self.u_SSA' in locals():
-			u = self.u_SSA
-		else:
-			u = self.H*0
+		u = self.u_SSA
 
-		self.FrictionLaw.update_friction_coefficient() #Update friction coefficient
-		self.FrictionLaw.update_lateral_drag() #Update lateral drag
+		#self.FrictionLaw.update_friction_coefficient() #Update friction coefficient
+		#self.FrictionLaw.update_lateral_drag() #Update lateral drag
+		alpha = self.FrictionLaw.friction_coefficient(u) + self.FrictionLaw.lateral_drag(u) #Combine basal and lateral drag in a single coefficient
 
 		while((rel_error>tol)&(i<itermax)):
-
-			alpha = self.FrictionLaw.friction_coefficient + self.FrictionLaw.lateral_drag #Combine basal and lateral drag in a single coefficient
 
 			dudx = (u[1:] - u[0:-1])/self.dx # On staggered grid
 			dudx_sqr_reg = dudx**2.0 + eps**2.0

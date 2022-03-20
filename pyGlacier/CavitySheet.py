@@ -4,7 +4,7 @@ from .solvers.oneDimensionalSolvers import step_diffusion_1d
 class CavitySheet():
 	#
 	# Solves for the hydraulic potential in a cavity sheet where the sheet hydraulic conductivity is set by the state parameter from the sliding law.
-	# 
+	#
 	def zero_func(model): #Default zero function (if function not supplied by user)
 		return model.b*0
 
@@ -28,7 +28,7 @@ class CavitySheet():
 	def update_water_pressure(self):
 		model = self.model
 		self.water_pressure = self.hydraulic_potential - self.water_density*model.g*model.b
-		
+
 		#Force water pressure below or equal to zero when glacier thickness vanishes
 		ind = np.where( np.logical_and(model.H<=self.minimum_drainage_thickness, self.water_pressure>0.0 ))
 		self.water_pressure[ind]=0.0
@@ -36,13 +36,13 @@ class CavitySheet():
 
 	def step(self,source_term_from_conduit = 0.0):
 		model = self.model
-		dissipation_friction = np.abs(model.sliding_velocity**2.0*model.FrictionLaw.friction_coefficient)
+		dissipation_friction = np.abs(model.sliding_velocity**2.0*model.FrictionLaw.friction_coefficient(model.sliding_velocity))
 		melt_rate = 1.0/(self.latent_heat*model.rho)*(self.geothermal_heat_flux + dissipation_friction) # Calculate melt rate
 		effective_conductivity = self.getHydraulicConductivity()
 
 		D = effective_conductivity*self.water_density*model.g/self.ev
 		D_staggered = (D[1:]+D[0:-1])/2.0
-		
+
 		beta = self.water_density*model.g/self.ev*(self.h0*model.FrictionLaw.state_parameter_derivative + self.source_term(model) + melt_rate + source_term_from_conduit)
 		#beta = self.water_density*model.g/self.ev*(1/(model.FrictionLaw.state_parameter+1.0e-9)*self.h0*model.FrictionLaw.state_parameter_derivative + self.source_term(model) + melt_rate + source_term_from_conduit) # with the logarithmic term
 		self.hydraulic_potential = step_diffusion_1d(dt = model.dt, dx = model.dx, phi = self.hydraulic_potential, sourceTerm = beta, D = D_staggered, left_boundary_condition = 'vonNeuman',left_boundary_condition_value = 0.0, right_boundary_condition = 'vonNeuman', right_boundary_condition_value = 0.0)
@@ -54,7 +54,7 @@ class CavitySheet():
 		effective_conductivity = self.getHydraulicConductivity()
 		discharge = - effective_conductivity*np.gradient(self.hydraulic_potential/model.dx)
 		return discharge
-		
+
 	def getHydraulicConductivity(self):
 		model = self.model
 		perc_fun = self.percolation_function()
@@ -76,5 +76,3 @@ class CavitySheet():
 			'sheet_conductivity':self.sheet_conductivity, 'channel_constant':self.channel_constant, 'closure_coefficient':self.closure_coefficient}
 		else:
 			return {'hydraulic_potential':self.hydraulic_potential.tolist(), 'water_pressure':self.water_pressure.tolist(), 'SourceTerm':self.source_term(model)}
-
-	
