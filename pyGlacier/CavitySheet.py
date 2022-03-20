@@ -44,7 +44,6 @@ class CavitySheet():
 		D_staggered = (D[1:]+D[0:-1])/2.0
 
 		beta = self.water_density*model.g/self.ev*(self.h0*model.FrictionLaw.state_parameter_derivative + self.source_term(model) + melt_rate + source_term_from_conduit)
-		#beta = self.water_density*model.g/self.ev*(1/(model.FrictionLaw.state_parameter+1.0e-9)*self.h0*model.FrictionLaw.state_parameter_derivative + self.source_term(model) + melt_rate + source_term_from_conduit) # with the logarithmic term
 		self.hydraulic_potential = step_diffusion_1d(dt = model.dt, dx = model.dx, phi = self.hydraulic_potential, sourceTerm = beta, D = D_staggered, left_boundary_condition = 'vonNeuman',left_boundary_condition_value = 0.0, right_boundary_condition = 'vonNeuman', right_boundary_condition_value = 0.0)
 
 		self.update_water_pressure()
@@ -59,8 +58,6 @@ class CavitySheet():
 		model = self.model
 		perc_fun = self.percolation_function()
 		effective_conductivity = self.background_conductivity*np.ones(np.size(model.b)) + self.sheet_conductivity*(1.0-model.FrictionLaw.state_parameter)**3.0*perc_fun
-		#effective_conductivity = self.background_conductivity*np.ones(np.size(model.b)) + self.sheet_conductivity*(self.h0*(1.0-model.FrictionLaw.state_parameter))**3.0*perc_fun
-		#effective_conductivity = self.background_conductivity*np.ones(np.size(model.b)) - self.sheet_conductivity*(self.h0*np.log(model.FrictionLaw.state_parameter))**3.0*perc_fun #log-term for opening
 		return effective_conductivity
 
 	def percolation_function(self):

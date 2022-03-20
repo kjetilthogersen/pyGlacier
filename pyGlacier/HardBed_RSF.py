@@ -35,26 +35,11 @@ class HardBed_RSF():
 
 		self.state_parameter[np.where(self.state_parameter>1.0)]=1.0
 
-		#self.update_friction_coefficient()
-		#self.update_lateral_drag()
-
-
 	def friction_coefficient(self, velocity, eps=1.0e-20):
 		return self.state_parameter*(np.abs(velocity+eps)/self.As)**(1.0/self.m-1.0)/self.As # basal friction:
 
 	def lateral_drag(self, velocity, eps=1.0e-20):
 		return 2.0*self.model.H/self.model.width * (5.0/(self.model.A*self.model.width))**(1.0/3.0)*np.abs(velocity+eps)**(-2.0/3.0) # drag from lateral boundaries
-
-
-
-	#def update_friction_coefficient(self, eps=1.0e-20):
-	#	velocity = np.abs(self.model.sliding_velocity)+eps
-	#	self.friction_coefficient = self.state_parameter*(velocity/self.As)**(1.0/self.m-1.0)/self.As # basal friction:
-
-
-	#def update_lateral_drag(self, eps=1.0e-20):
-	#	velocity = np.abs(self.model.sliding_velocity)+eps
-	#	self.lateral_drag = 2.0*self.model.H/self.model.width * (5.0/(self.model.A*self.model.width))**(1.0/3.0)*velocity**(-2.0/3.0) # drag from lateral boundaries
 
 	def getDictionary(self, init = False):
 		if init:

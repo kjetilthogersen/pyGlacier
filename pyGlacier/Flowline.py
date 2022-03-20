@@ -270,9 +270,6 @@ class Flowline:
 		i = 0
 
 		u = self.u_SSA
-
-		#self.FrictionLaw.update_friction_coefficient() #Update friction coefficient
-		#self.FrictionLaw.update_lateral_drag() #Update lateral drag
 		alpha = self.FrictionLaw.friction_coefficient(u) + self.FrictionLaw.lateral_drag(u) #Combine basal and lateral drag in a single coefficient
 
 		while((rel_error>tol)&(i<itermax)):
