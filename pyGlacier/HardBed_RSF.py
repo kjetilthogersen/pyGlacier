@@ -1,9 +1,11 @@
+#coding=utf-8
 import numpy as np
+
 
 class HardBed_RSF():
 	#
-	# Solves hard bed rate-and-state based on Thøgersen et. al (Nature communications 2019). The state parameter is integrated and changes over a length scale dc and/or a time-scale tc.
-	# There is an additional term t_closure_zero_thickness to account for the possibility of zero ice thickness. The standard value ensures that "cavities" at zero thickness close quickly.
+	# Solves hard bed rate-and-state based on Thøgersen et. al (Nature communications 2019). The state parameter is integrated and changes over a length scale dc and/or a time-scale tc
+    # There is an additional term t_closure_zero_thickness to account for the possibility of zero ice thickness. The standard value ensures that "cavities" at zero thickness close quickly.
 	#
 
 	def __init__(self, variables, model = None):
@@ -25,18 +27,20 @@ class HardBed_RSF():
 		sigma_N[np.where(sigma_N<eps)]=eps # We do not solve for uplift when the effective normal stress is negative
 		xi = np.abs(self.model.sliding_velocity)/((self.C**self.m)*(sigma_N**self.m)*self.As)
 		alpha = (self.q-1.0)**(self.q-1.0)/(self.q**self.q)
-		theta_dagger = (1.0/(1.0 + alpha*xi**self.q))**(1.0/self.m)
+		theta_dagger = 1.0-(1.0/(1.0 + alpha*xi**self.q))**(1.0/self.m)
 
 		self.state_parameter_derivative = (np.abs(self.model.sliding_velocity)/self.dc)*(theta_dagger-self.state_parameter) + (theta_dagger-self.state_parameter)/self.tc
 
-		self.state_parameter_derivative[np.where(self.model.H<=0)] = self.state_parameter_derivative[np.where(self.model.H<=0)] + (1-self.state_parameter[np.where(self.model.H<=0)])/self.t_closure_zero_thickness# Quickly close cavities when ice is gone:
-		self.state_parameter_derivative[np.where(self.state_parameter+self.state_parameter_derivative*self.model.dt < 0.0)] = -self.state_parameter[np.where(self.state_parameter+self.state_parameter_derivative*self.model.dt < 0.0)]/self.model.dt #avoid unphysical result by chaning derivative that will pass 0 (although time-step should be small enough so that this is not needed)
+		self.state_parameter_derivative[np.where(self.model.H<=0)] = self.state_parameter_derivative[np.where(self.model.H<=0)] - (self.state_parameter[np.where(self.model.H<=0)])/self.t_closure_zero_thickness# Quickly close cavities when ice is gone:
+		self.state_parameter_derivative[np.where(self.state_parameter+self.state_parameter_derivative*self.model.dt > 1.0)] = (1.0-self.state_parameter[np.where(self.state_parameter+self.state_parameter_derivative*self.model.dt > 1.0)])/self.model.dt #avoid unphysical result by chaning derivative that will pass 0 (although time-step should be small enough so that this is not needed)
+		
 		self.state_parameter = self.state_parameter + self.state_parameter_derivative*self.model.dt # Forward Euler step
 
 		self.state_parameter[np.where(self.state_parameter>1.0)]=1.0
+		self.state_parameter[np.where(self.state_parameter<0.0)]=0.0
 
 	def friction_coefficient(self, velocity, eps=1.0e-20):
-		return self.state_parameter*(np.abs(velocity+eps)/self.As)**(1.0/self.m-1.0)/self.As # basal friction:
+		return (1.0-self.state_parameter)*(np.abs(velocity+eps)/self.As)**(1.0/self.m-1.0)/self.As # basal friction:
 
 	def lateral_drag(self, velocity, eps=1.0e-20):
 		return 2.0*self.model.H/self.model.width * (5.0/(self.model.A*self.model.width))**(1.0/3.0)*np.abs(velocity+eps)**(-2.0/3.0) # drag from lateral boundaries

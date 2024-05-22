@@ -20,6 +20,8 @@ class CoupledConduitCavitySheet():
 		self.S = variables['S']
 		self.channel_constant = variables['channel_constant']
 		self.conduit_spacing = variables['conduit_spacing']
+		self.conduit_sheet_contribution = variables['conduit_sheet_contribution']
+		self.ConduitPressure =  variables['ConduitPressure']
 
 		#Sheet
 		self.hydraulic_potential_sheet = variables['hydraulic_potential']
@@ -35,7 +37,7 @@ class CoupledConduitCavitySheet():
 		self.model = model
 
 		# Cavity sheet should be changed to take input as a dictionary
-		self.conduit_system = ConduitSystem(hydraulic_potential = self.hydraulic_potential, latent_heat = self.latent_heat, source_term = 0.0, water_density = self.water_density, minimum_drainage_thickness = self.minimum_drainage_thickness, S = self.S, conduit_spacing = self.conduit_spacing, channel_constant = self.channel_constant, closure_coefficient = self.closure_coefficient, model = model)
+		self.conduit_system = ConduitSystem(hydraulic_potential = self.hydraulic_potential, latent_heat = self.latent_heat, source_term = 0.0, water_density = self.water_density, minimum_drainage_thickness = self.minimum_drainage_thickness, S = self.S, conduit_spacing = self.conduit_spacing, conduit_sheet_contribution = self.conduit_sheet_contribution, channel_constant = self.channel_constant, closure_coefficient = self.closure_coefficient, ConduitPressure = self.ConduitPressure, model = model)
 		self.sheet_system = CavitySheet(water_density = self.water_density, hydraulic_potential = self.hydraulic_potential, background_conductivity = self.background_conductivity, source_term = self.source_term, sheet_conductivity = self.sheet_conductivity, percolation_threshold = self.percolation_threshold, h0 = self.h0, ev = self.ev,minimum_drainage_thickness = self.minimum_drainage_thickness, model = model)
 
 	def update_water_pressure(self):
@@ -65,7 +67,7 @@ class CoupledConduitCavitySheet():
 	def getDictionary(self, init = False):
 
 		if init:
-			return {'conduit_spacing':self.conduit_spacing, 'ev':self.ev, 'h0':self.h0,
+			return {'conduit_spacing':self.conduit_spacing, 'conduit_sheet_contribution':self.conduit_sheet_contribution, 'ev':self.ev, 'h0':self.h0,
 			'water_density':self.water_density, 'latent_heat':self.latent_heat, 'minimum_drainage_thickness':self.minimum_drainage_thickness,
 			'percolation_threshold':self.percolation_threshold, 'background_conductivity':self.background_conductivity, 'geothermal_heat_flux':self.geothermal_heat_flux,
 			'sheet_conductivity':self.sheet_conductivity, 'channel_constant':self.channel_constant, 'closure_coefficient':self.closure_coefficient}

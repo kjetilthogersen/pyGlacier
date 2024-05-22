@@ -7,13 +7,12 @@ import numpy as np
 x = np.linspace(0,2e4,1000)
 dx = x[1]-x[0]
 b = 2000.0*np.exp(-x/15000)
-#b = 2000.0*np.exp(-x/15000) - 10*np.arctan((x-7000)/500)
 
 def SMB(model):
-	return (model.b+model.H-1600.0)*1e-3/(3.15e7)*4
+	return (model.b+model.H-1600.0)*1e-3/(secondyears)*4
 
 def source_term(model):
-	return 1.0e-8*(np.sin(model.t*3.14/3.15e7)**2.0)
+	return 1.0e-8*(np.sin(model.t*np.pi/secondyears)**2.0)
 
 # Set up variable dictionary:
 variables = {
@@ -24,9 +23,9 @@ variables = {
 		'rho': 900.0,
 		'g': 9.8,
 		'n': 3.0,
-		'width': 1.5e3,
+		'width': 1.2e3,
 		't': 0.0,
-		'A': 1.0e-24,
+		'A': 2.4e-24,
 		'H': 0*x,
 		'b': b,
 		'dx': dx,
@@ -48,14 +47,16 @@ variables = {
 		'minimum_drainage_thickness': 1.0,
 		'S': 0*b,
 		'ev': 1.0e-2,
-		'percolation_threshold': 0.1,
+		'percolation_threshold': 0.5,
 		'geothermal_heat_flux': 0.0,
-		'h0': 0.01,
-		'background_conductivity': 1.0e-11*1e3,
-		'sheet_conductivity': 3.0e-8*1e3,
-		'channel_constant': 0.1,
+		'h0': 0.1,
+		'background_conductivity': 1.0e-8,
+		'sheet_conductivity': 5.0e-8,
+		'channel_constant': 0.01,
 		'conduit_spacing': 1000.0,
-		'closure_coefficient': 1.0e8 } },
+		'conduit_sheet_contribution': 2.0,
+		'ConduitPressure': 'Sheet',
+		'closure_coefficient': 5.3e7 } },
 'FrictionLaw': 
 	{'ID': 'HardBed_RSF',
 	'variables':{ 
@@ -63,7 +64,7 @@ variables = {
 		'As': 1.0e-23,
 		'm': 3.0,
 		'q': 2.5,
-		'C': 0.14,
+		'C': 0.3,
 		'tc': 1.0e6,
 		'dc': 1.0,
 		't_closure_zero_thickness': 1.0e5 } },

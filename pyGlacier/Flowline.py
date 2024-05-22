@@ -104,7 +104,7 @@ class Flowline:
 		# the shallow ice approximation and the shallow shelf approximation as well as a given surface mass balance
 		h = self.H+self.b
 		D_staggered = (self.D[1:]+self.D[0:-1])/2.0 #Staggered grid
-		h = step_advection_diffusion_1d(dt = self.dt, dx = self.dx, phi = h, sourceTerm = self.SMB(self), D = D_staggered, Vphi = -self.sliding_velocity*self.H, left_boundary_condition = self.left_bc_type, left_boundary_condition_value = self.left_bc_val, right_boundary_condition = self.right_bc_type, right_boundary_condition_value = self.right_bc_val)
+		h = step_advection_diffusion_1d(dt = self.dt, dx = self.dx, phi = h, sourceTerm = self.SMB(self), D = D_staggered, Vphi = -(1-self.superposed(self.u_SSA))*self.u_SSA*self.H, left_boundary_condition = self.left_bc_type, left_boundary_condition_value = self.left_bc_val, right_boundary_condition = self.right_bc_type, right_boundary_condition_value = self.right_bc_val)
 		self.H = h-self.b
 		self.H[np.where(self.H<=0)] = 0 # Ice thickness cannot be below zero
 
@@ -119,8 +119,8 @@ class Flowline:
 
 		if(self.solver == 'coupled'):
 			self.U = self.superposed(self.u_SSA)*self.u_SIA + (1-self.superposed(self.u_SSA))*self.u_SSA
-			#self.sliding_velocity = self.u_SSA # Sliding velocity kept separate in the SSA solver. Superposition done afterwards to get U
-			self.sliding_velocity = (1-self.superposed(self.u_SSA))*self.u_SSA # Sliding velocity
+			self.sliding_velocity = self.u_SSA # Sliding velocity kept separate in the SSA solver. Superposition done afterwards to get U
+			# self.sliding_velocity = (1-self.superposed(self.u_SSA))*self.u_SSA # Sliding velocity
 			self.D = self.superposed(self.u_SSA)*self.D_SIA
 
 		elif(self.solver == 'SIA'):
@@ -269,7 +269,7 @@ class Flowline:
 		rel_error = 1.0
 		i = 0
 
-		u = self.u_SSA
+		u = self.sliding_velocity
 		alpha = self.FrictionLaw.friction_coefficient(u) + self.FrictionLaw.lateral_drag(u) #Combine basal and lateral drag in a single coefficient
 
 		while((rel_error>tol)&(i<itermax)):
