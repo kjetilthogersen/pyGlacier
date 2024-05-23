@@ -30,4 +30,5 @@ for i in range(1,1000):
 	line1.set_ydata(phi)
 	#fig.canvas.draw()
 	plt.pause(0.0001)
-	print i
+	print(i)
+         

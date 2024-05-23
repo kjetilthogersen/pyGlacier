@@ -9,10 +9,10 @@ dx = x[1]-x[0]
 b = 2000.0*np.exp(-x/15000)
 
 def SMB(model):
-	return (model.b+model.H-1600.0)*1e-3/(secondyears)*4
+	return (model.b+model.H-1600.0)*1e-3/(pg.secondyears)*4
 
 def source_term(model):
-	return 1.0e-8*(np.sin(model.t*np.pi/secondyears)**2.0)
+	return 1.0e-8*(np.sin(model.t*np.pi/pg.secondyears)**2.0)
 
 # Set up variable dictionary:
 variables = {
@@ -60,7 +60,7 @@ variables = {
 'FrictionLaw': 
 	{'ID': 'HardBed_RSF',
 	'variables':{ 
-		'state_parameter': np.ones(np.size(b)),
+		'state_parameter': np.zeros(np.size(b)),
 		'As': 1.0e-23,
 		'm': 3.0,
 		'q': 2.5,

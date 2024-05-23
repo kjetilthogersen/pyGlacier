@@ -43,15 +43,26 @@ variables = {
 		'H': H_numerical,
 		'b': b,
 		'dx': dx,
-		'dt': t[1]-t[0]} },
+		'dt': t[1]-t[0]},
+    'boundaryConditions':{
+        'left':{
+            'type': 'thickness', # thickness or surface slope
+            'val': 0},
+        'right':{
+        'type': 'thickness',
+        'val': 0} } } ,
 'DrainageSystem': 
 	{'ID': 'None'},
 'FrictionLaw': 
 	{'ID': 'None'},
 'Output': 
-	{'foldername': 'benchmark_SIA',
+	{'ID': 'standard',
+	'foldername': 'run_benchmarkSIA',
 	'output_interval': 100,
-	'file_format': 'json'} }
+	'reduced': True,
+	'reduced_output_interval': 1,
+	'flush_interval': 100,
+	'file_format': 'hdf5'} }
 
 
 # Loop and plot

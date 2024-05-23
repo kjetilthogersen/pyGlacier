@@ -83,9 +83,11 @@ class Flowline:
 			self.DrainageSystem.update_water_pressure()
 
 		self.sliding_velocity = np.zeros(np.size(self.b))
+		self.Vphi = np.zeros(np.size(self.b))
+		
 		if self.solver == 'SSA' or self.solver =='coupled':
 			self.u_SSA = np.zeros(np.size(self.b))
-		elif solver == 'SIA':
+		elif self.solver == 'SIA':
 			self.u_SIA = np.zeros(np.size(self.b))
 
 
@@ -104,7 +106,7 @@ class Flowline:
 		# the shallow ice approximation and the shallow shelf approximation as well as a given surface mass balance
 		h = self.H+self.b
 		D_staggered = (self.D[1:]+self.D[0:-1])/2.0 #Staggered grid
-		h = step_advection_diffusion_1d(dt = self.dt, dx = self.dx, phi = h, sourceTerm = self.SMB(self), D = D_staggered, Vphi = -(1-self.superposed(self.u_SSA))*self.u_SSA*self.H, left_boundary_condition = self.left_bc_type, left_boundary_condition_value = self.left_bc_val, right_boundary_condition = self.right_bc_type, right_boundary_condition_value = self.right_bc_val)
+		h = step_advection_diffusion_1d(dt = self.dt, dx = self.dx, phi = h, sourceTerm = self.SMB(self), D = D_staggered, Vphi = -self.Vphi*self.H, left_boundary_condition = self.left_bc_type, left_boundary_condition_value = self.left_bc_val, right_boundary_condition = self.right_bc_type, right_boundary_condition_value = self.right_bc_val)
 		self.H = h-self.b
 		self.H[np.where(self.H<=0)] = 0 # Ice thickness cannot be below zero
 
@@ -120,17 +122,19 @@ class Flowline:
 		if(self.solver == 'coupled'):
 			self.U = self.superposed(self.u_SSA)*self.u_SIA + (1-self.superposed(self.u_SSA))*self.u_SSA
 			self.sliding_velocity = self.u_SSA # Sliding velocity kept separate in the SSA solver. Superposition done afterwards to get U
-			# self.sliding_velocity = (1-self.superposed(self.u_SSA))*self.u_SSA # Sliding velocity
+			self.Vphi = (1-self.superposed(self.u_SSA))*self.u_SSA # Sliding velocity
 			self.D = self.superposed(self.u_SSA)*self.D_SIA
 
 		elif(self.solver == 'SIA'):
 			self.U = self.u_SIA
 			self.sliding_velocity = np.zeros(np.size(self.u_SIA))
+			self.Vphi = np.zeros(np.size(self.u_SIA))
 			self.D = self.D_SIA
 
 		elif(self.solver == 'SSA'):
 			self.U = self.u_SSA
 			self.sliding_velocity = self.u_SSA
+			self.Vphi = self.u_SSA
 			self.D = np.zeros(np.size(self.D_SSA))
 
 		if((self.solver == 'SSA') or (self.solver == 'coupled')):
